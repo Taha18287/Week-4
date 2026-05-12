@@ -1,19 +1,26 @@
 # Week 4 - Advanced Threat Detection & Web Security
-
 ## Project Overview
-
 This project implements advanced web security techniques using Node.js and Express.js.
+
+---
+
+
+---
 
 ## Features Implemented
 
 - Rate Limiting using express-rate-limit
 - API Key Authentication
+- JWT Authentication
 - CORS Configuration
 - Helmet Security Headers
 - Content Security Policy (CSP)
 - HSTS Security
 - Failed Login Monitoring
+- Intrusion Detection System (IP-based tracking)
 - Protected API Routes
+
+---
 
 ## Technologies Used
 
@@ -22,69 +29,125 @@ This project implements advanced web security techniques using Node.js and Expre
 - Helmet
 - CORS
 - express-rate-limit
+- JSON Web Token (JWT)
 - dotenv
 - Postman
 
+---
+
 ## API Endpoints
 
-### Login Route
-
+### 1. Login Route
+```
 POST /login
+```
 
-### Private API
+**Body:**
+```json
+{
+  "username": "admin",
+  "password": "12345"
+}
+```
 
+**Response:**
+```json
+{
+  "token": "JWT_TOKEN_HERE"
+}
+```
+
+---
+
+### 2. Private API (API Key Required)
+```
 GET /api/private
+```
 
-### Dashboard Route
+**Headers:**
+```
+x-api-key: myapikey123
+```
 
+---
+
+### 3. Dashboard Route (JWT Required)
+```
 GET /dashboard
+```
+
+**Headers:**
+```
+Authorization: Bearer JWT_TOKEN_HERE
+```
+
+---
 
 ## Installation
 
 ### Install Dependencies
-
-```bash
+```
 npm install
 ```
 
 ### Run Server
-
-```bash
+```
 node server.js
 ```
+
+---
 
 ## Environment Variables
 
 Create `.env` file:
 
-```env
+```
 PORT=5000
 JWT_SECRET=mysecret123
 API_KEY=myapikey123
 ```
 
+---
+
 ## Security Features
 
 ### Rate Limiting
-
-Protects APIs from brute-force attacks.
+Protects APIs from brute-force attacks by limiting requests.
 
 ### API Authentication
-
 Secures endpoints using API keys.
 
-### CSP
+### JWT Authentication
+Ensures only logged-in users can access protected routes.
 
-Prevents script injection attacks.
+### Content Security Policy (CSP)
+Prevents XSS (script injection attacks).
 
 ### HSTS
-
-Enforces HTTPS communication.
+Forces secure HTTPS communication.
 
 ### Failed Login Monitoring
+Tracks incorrect login attempts and logs suspicious activity.
 
-Detects repeated failed login attempts.
+### Intrusion Detection System
+Monitors IP-based failed login attempts and triggers alerts after multiple failures.
+
+---
 
 ## Testing
 
-APIs tested using Postman.
+All APIs were tested using Postman:
+
+- Login endpoint tested with correct and incorrect credentials
+- API key validation tested using headers
+- JWT-protected route tested with valid and invalid tokens
+- Rate limiting tested by sending multiple requests
+
+---
+
+## Security Summary
+
+This project demonstrates a complete backend security system including authentication, authorization, request limiting, and intrusion detection mechanisms to protect APIs from common cyber attacks.
+
+
+
