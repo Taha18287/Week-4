@@ -59,7 +59,8 @@ Create `.env` file:
 
 ```env
 PORT=5000
-API_KEY=123456789
+JWT_SECRET=mysecret123
+API_KEY=myapikey123
 ```
 
 ## Security Features
