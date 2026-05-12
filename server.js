@@ -10,7 +10,9 @@ const app = express();
 
 app.use(express.json());
 
-/* SECURITY HEADERS */
+/* =========================
+   SECURITY HEADERS
+========================= */
 
 app.use(helmet());
 
@@ -32,13 +34,17 @@ app.use(
   })
 );
 
-/* CORS */
+/* =========================
+   CORS
+========================= */
 
 app.use(cors({
   origin: ['http://localhost:3000']
 }));
 
-/* RATE LIMIT */
+/* =========================
+   RATE LIMITING
+========================= */
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -48,7 +54,9 @@ const limiter = rateLimit({
 
 app.use('/api', limiter);
 
-/* API KEY */
+/* =========================
+   API KEY MIDDLEWARE
+========================= */
 
 const apiKeyMiddleware = (req, res, next) => {
 
@@ -65,7 +73,9 @@ const apiKeyMiddleware = (req, res, next) => {
   next();
 };
 
-/* JWT VERIFY */
+/* =========================
+   JWT MIDDLEWARE
+========================= */
 
 const verifyToken = (req, res, next) => {
 
@@ -81,10 +91,7 @@ const verifyToken = (req, res, next) => {
 
   try {
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded;
 
@@ -99,7 +106,24 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-/* ROUTES */
+/* =========================
+    INTRUSION DETECTION (NEW)
+========================= */
+
+let failedAttempts = {};
+
+const MAX_FAILED_ATTEMPTS = 5;
+
+function logAlert(ip, count) {
+
+  console.log(` ALERT: Suspicious activity detected`);
+  console.log(`IP: ${ip}`);
+  console.log(`Failed Attempts: ${count}`);
+}
+
+/* =========================
+   ROUTES
+========================= */
 
 app.get('/', (req, res) => {
 
@@ -107,7 +131,9 @@ app.get('/', (req, res) => {
 
 });
 
-/* API KEY ROUTE */
+/* =========================
+   API KEY PROTECTED ROUTE
+========================= */
 
 app.get(
   '/api/private',
@@ -119,19 +145,46 @@ app.get(
       message: 'Private API Access Granted'
     });
 
-});
+  }
+);
 
-/* LOGIN */
+/* =========================
+   LOGIN (WITH IDS ADDED)
+========================= */
 
 app.post('/login', (req, res) => {
 
-  const user = {
-    id: 1,
-    username: 'admin'
-  };
+  const ip = req.ip;
+  const { username, password } = req.body;
+
+  const validUser = 'admin';
+  const validPass = '12345';
+
+  //  FAILED LOGIN
+  if (username !== validUser || password !== validPass) {
+
+    // count failed attempts
+    failedAttempts[ip] = (failedAttempts[ip] || 0) + 1;
+
+    console.log(` Failed login from ${ip}: ${failedAttempts[ip]}`);
+
+    // ALERT TRIGGER
+    if (failedAttempts[ip] >= MAX_FAILED_ATTEMPTS) {
+
+      logAlert(ip, failedAttempts[ip]);
+
+    }
+
+    return res.status(401).json({
+      message: 'Invalid credentials'
+    });
+  }
+
+  // ✅ SUCCESS LOGIN → reset counter
+  failedAttempts[ip] = 0;
 
   const token = jwt.sign(
-    user,
+    { username: validUser },
     process.env.JWT_SECRET,
     { expiresIn: '1h' }
   );
@@ -140,7 +193,9 @@ app.post('/login', (req, res) => {
 
 });
 
-/* JWT ROUTE */
+/* =========================
+   DASHBOARD (JWT PROTECTED)
+========================= */
 
 app.get(
   '/dashboard',
@@ -152,14 +207,15 @@ app.get(
       user: req.user
     });
 
-});
+  }
+);
 
-/* START SERVER */
+/* =========================
+   START SERVER
+========================= */
 
 app.listen(process.env.PORT, () => {
 
-  console.log(
-    `Server running on port ${process.env.PORT}`
-  );
+  console.log(`Server running on port ${process.env.PORT}`);
 
 });
