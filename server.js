@@ -8,7 +8,13 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 
+/* =========================
+   BODY PARSERS (FIXED ISSUE)
+========================= */
+
+// IMPORTANT: this fixes req.body = undefined
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 /* =========================
    SECURITY HEADERS
@@ -59,15 +65,12 @@ app.use('/api', limiter);
 ========================= */
 
 const apiKeyMiddleware = (req, res, next) => {
-
   const apiKey = req.headers['x-api-key'];
 
   if (apiKey !== process.env.API_KEY) {
-
     return res.status(401).json({
       message: 'Invalid API Key'
     });
-
   }
 
   next();
@@ -78,91 +81,66 @@ const apiKeyMiddleware = (req, res, next) => {
 ========================= */
 
 const verifyToken = (req, res, next) => {
-
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
-
     return res.status(401).json({
       message: 'No token'
     });
-
   }
 
   try {
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     req.user = decoded;
-
     next();
-
   } catch {
-
     return res.status(403).json({
       message: 'Invalid token'
     });
-
   }
 };
 
 /* =========================
-    INTRUSION DETECTION (NEW)
+   IDS (FAILED LOGIN TRACKING)
 ========================= */
 
 let failedAttempts = {};
-
 const MAX_FAILED_ATTEMPTS = 5;
-
-function logAlert(ip, count) {
-
-  console.log(` ALERT: Suspicious activity detected`);
-  console.log(`IP: ${ip}`);
-  console.log(`Failed Attempts: ${count}`);
-}
 
 /* =========================
    ROUTES
 ========================= */
 
 app.get('/', (req, res) => {
-
   res.send('Secure Server Running');
-
 });
 
 /* =========================
-   API KEY PROTECTED ROUTE
+   API ROUTE
 ========================= */
 
-app.get(
-  '/api/private',
-  apiKeyMiddleware,
-  (req, res) => {
-
-    res.json({
-      success: true,
-      message: 'Private API Access Granted'
-    });
-
-  }
-);
+app.get('/api/private', apiKeyMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Private API Access Granted'
+  });
+});
 
 /* =========================
-   LOGIN (WITH IDS ADDED)
+   LOGIN (FIXED SAFE VERSION)
 ========================= */
-
 
 app.post('/login', (req, res) => {
 
   const ip = req.ip;
 
-  const { username, password } = req.body;
+  // ✅ FIX: safe extraction prevents crash
+  const username = req.body?.username || "";
+  const password = req.body?.password || "";
 
   const validUser = 'admin';
   const validPass = '12345';
 
-  // CHECK WRONG LOGIN
   if (username !== validUser || password !== validPass) {
 
     failedAttempts[ip] = (failedAttempts[ip] || 0) + 1;
@@ -170,13 +148,9 @@ app.post('/login', (req, res) => {
     console.log(`Failed login attempt from ${ip}`);
     console.log(`Attempts: ${failedAttempts[ip]}`);
 
-    // ALERT
     if (failedAttempts[ip] >= MAX_FAILED_ATTEMPTS) {
-
-      console.log(' ALERT: Suspicious activity detected');
+      console.log('ALERT: Suspicious activity detected');
       console.log(`IP Address: ${ip}`);
-      console.log(`Failed Attempts: ${failedAttempts[ip]}`);
-
     }
 
     return res.status(401).json({
@@ -185,18 +159,13 @@ app.post('/login', (req, res) => {
     });
   }
 
-  // RESET AFTER SUCCESS
+  // reset counter
   failedAttempts[ip] = 0;
 
-  // CREATE JWT
   const token = jwt.sign(
-    {
-      username: validUser
-    },
+    { username: validUser },
     process.env.JWT_SECRET,
-    {
-      expiresIn: '1h'
-    }
+    { expiresIn: '1h' }
   );
 
   res.json({
@@ -204,32 +173,23 @@ app.post('/login', (req, res) => {
     message: 'Login successful',
     token
   });
-
 });
 
 /* =========================
-   DASHBOARD (JWT PROTECTED)
+   DASHBOARD
 ========================= */
 
-app.get(
-  '/dashboard',
-  verifyToken,
-  (req, res) => {
-
-    res.json({
-      message: 'Protected Dashboard',
-      user: req.user
-    });
-
-  }
-);
+app.get('/dashboard', verifyToken, (req, res) => {
+  res.json({
+    message: 'Protected Dashboard',
+    user: req.user
+  });
+});
 
 /* =========================
    START SERVER
 ========================= */
 
 app.listen(process.env.PORT, () => {
-
   console.log(`Server running on port ${process.env.PORT}`);
-
 });
