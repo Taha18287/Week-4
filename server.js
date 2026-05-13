@@ -152,44 +152,58 @@ app.get(
    LOGIN (WITH IDS ADDED)
 ========================= */
 
+
 app.post('/login', (req, res) => {
 
   const ip = req.ip;
+
   const { username, password } = req.body;
 
   const validUser = 'admin';
   const validPass = '12345';
 
-  //  FAILED LOGIN
+  // CHECK WRONG LOGIN
   if (username !== validUser || password !== validPass) {
 
-    // count failed attempts
     failedAttempts[ip] = (failedAttempts[ip] || 0) + 1;
 
-    console.log(` Failed login from ${ip}: ${failedAttempts[ip]}`);
+    console.log(`Failed login attempt from ${ip}`);
+    console.log(`Attempts: ${failedAttempts[ip]}`);
 
-    // ALERT TRIGGER
+    // ALERT
     if (failedAttempts[ip] >= MAX_FAILED_ATTEMPTS) {
 
-      logAlert(ip, failedAttempts[ip]);
+      console.log(' ALERT: Suspicious activity detected');
+      console.log(`IP Address: ${ip}`);
+      console.log(`Failed Attempts: ${failedAttempts[ip]}`);
 
     }
 
     return res.status(401).json({
+      success: false,
       message: 'Invalid credentials'
     });
   }
 
-  // ✅ SUCCESS LOGIN → reset counter
+  // RESET AFTER SUCCESS
   failedAttempts[ip] = 0;
 
+  // CREATE JWT
   const token = jwt.sign(
-    { username: validUser },
+    {
+      username: validUser
+    },
     process.env.JWT_SECRET,
-    { expiresIn: '1h' }
+    {
+      expiresIn: '1h'
+    }
   );
 
-  res.json({ token });
+  res.json({
+    success: true,
+    message: 'Login successful',
+    token
+  });
 
 });
 
