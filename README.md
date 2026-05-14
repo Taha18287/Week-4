@@ -66,7 +66,7 @@ GET /api/private
 
 **Headers:**
 ```
-x-api-key: myapikey123
+x-api-key: testkey
 ```
 
 ---
@@ -103,8 +103,9 @@ Create `.env` file:
 
 ```
 PORT=5000
-JWT_SECRET=mysecret123
-API_KEY=myapikey123
+SESSION_SECRET=supersecret123
+JWT_SECRET=jwtsecret123
+API_KEY=testkey
 ```
 
 ---
